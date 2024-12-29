@@ -1,0 +1,86 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Hung\\Downloads\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{1248FE28-DFAF-42CC-8AE1-B940FA4DE1D3}|QLThuVien_3\\QLThuVien_3.csproj|c:\\users\\hung\\downloads\\qlthuvien\\qlthuvien\\qlthuvien\\qlthuvien\\qlthuvien_3\\usercontroldocgia.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1248FE28-DFAF-42CC-8AE1-B940FA4DE1D3}|QLThuVien_3\\QLThuVien_3.csproj|solutionrelative:qlthuvien_3\\usercontroldocgia.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1248FE28-DFAF-42CC-8AE1-B940FA4DE1D3}|QLThuVien_3\\QLThuVien_3.csproj|c:\\users\\hung\\downloads\\qlthuvien\\qlthuvien\\qlthuvien\\qlthuvien\\qlthuvien_3\\usercontroldanhmucsach.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1248FE28-DFAF-42CC-8AE1-B940FA4DE1D3}|QLThuVien_3\\QLThuVien_3.csproj|solutionrelative:qlthuvien_3\\usercontroldanhmucsach.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1248FE28-DFAF-42CC-8AE1-B940FA4DE1D3}|QLThuVien_3\\QLThuVien_3.csproj|c:\\users\\hung\\downloads\\qlthuvien\\qlthuvien\\qlthuvien\\qlthuvien\\qlthuvien_3\\usercontroldocgia.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{1248FE28-DFAF-42CC-8AE1-B940FA4DE1D3}|QLThuVien_3\\QLThuVien_3.csproj|solutionrelative:qlthuvien_3\\usercontroldocgia.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1248FE28-DFAF-42CC-8AE1-B940FA4DE1D3}|QLThuVien_3\\QLThuVien_3.csproj|c:\\users\\hung\\downloads\\qlthuvien\\qlthuvien\\qlthuvien\\qlthuvien\\qlthuvien_3\\usercontroldanhmucsach.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{1248FE28-DFAF-42CC-8AE1-B940FA4DE1D3}|QLThuVien_3\\QLThuVien_3.csproj|solutionrelative:qlthuvien_3\\usercontroldanhmucsach.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "UserControlDocGia.cs",
+              "DocumentMoniker": "C:\\Users\\Hung\\Downloads\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien_3\\UserControlDocGia.cs",
+              "RelativeDocumentMoniker": "QLThuVien_3\\UserControlDocGia.cs",
+              "ToolTip": "C:\\Users\\Hung\\Downloads\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien_3\\UserControlDocGia.cs",
+              "RelativeToolTip": "QLThuVien_3\\UserControlDocGia.cs",
+              "ViewState": "AgIAABkAAAAAAAAAAAAnwC0AAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-12-29T09:10:09.459Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "UserControlDocGia.cs [Design]",
+              "DocumentMoniker": "C:\\Users\\Hung\\Downloads\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien_3\\UserControlDocGia.cs",
+              "RelativeDocumentMoniker": "QLThuVien_3\\UserControlDocGia.cs",
+              "ToolTip": "C:\\Users\\Hung\\Downloads\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien_3\\UserControlDocGia.cs [Design]",
+              "RelativeToolTip": "QLThuVien_3\\UserControlDocGia.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-12-29T09:10:08.658Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "UserControlDanhMucSach.cs",
+              "DocumentMoniker": "C:\\Users\\Hung\\Downloads\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien_3\\UserControlDanhMucSach.cs",
+              "RelativeDocumentMoniker": "QLThuVien_3\\UserControlDanhMucSach.cs",
+              "ToolTip": "C:\\Users\\Hung\\Downloads\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien_3\\UserControlDanhMucSach.cs",
+              "RelativeToolTip": "QLThuVien_3\\UserControlDanhMucSach.cs",
+              "ViewState": "AgIAAJMAAAAAAAAAAAA3wKcAAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-12-29T09:09:50.401Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "UserControlDanhMucSach.cs [Design]",
+              "DocumentMoniker": "C:\\Users\\Hung\\Downloads\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien_3\\UserControlDanhMucSach.cs",
+              "RelativeDocumentMoniker": "QLThuVien_3\\UserControlDanhMucSach.cs",
+              "ToolTip": "C:\\Users\\Hung\\Downloads\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien\\QLThuVien_3\\UserControlDanhMucSach.cs [Design]",
+              "RelativeToolTip": "QLThuVien_3\\UserControlDanhMucSach.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-12-29T09:09:49.745Z",
+              "EditorCaption": " [Design]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
