@@ -4,7 +4,6 @@ using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
 using System.Drawing;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using QLThuVien_3.Models;
 
@@ -16,15 +15,27 @@ namespace QLThuVien_3
     private List<MuonSach> danhSachMuonSachHienTai = new List<MuonSach>();
     private MuonSach muonSachHienTai = null;
     private bool isChangingText = false;
+    private NhanVien _nhanVien;
+    private string _vaiTro;
 
-    public UserControlMuonTra()
+    public UserControlMuonTra(NhanVien nhanVien, string vaiTro)
     {
       InitializeComponent();
+      _nhanVien = nhanVien;
+      _vaiTro = vaiTro;
       InitializeDataGridView();
       LoadData();
       LoadComboBoxes();
       ClearInputFields();
       SetReadOnlyFields();
+
+      cmbMaNhanVien.SelectedValue = _nhanVien.MaNhanVien;
+      cmbMaNhanVien.Enabled = false;
+    }
+
+    private void UserControlMuonTra_Load(object sender, EventArgs e)
+    {
+      SetWatermark();
     }
 
     private void InitializeDataGridView()
@@ -36,6 +47,7 @@ namespace QLThuVien_3
       dgvQuanLyMuonTra.Columns.Add("TenDocGia", "Tên độc giả");
       dgvQuanLyMuonTra.Columns.Add("MaSach", "Mã sách");
       dgvQuanLyMuonTra.Columns.Add("TenSach", "Tên sách");
+      dgvQuanLyMuonTra.Columns.Add("SoLuongMuon", "Số lượng mượn");
       dgvQuanLyMuonTra.Columns.Add("MaNhanVien", "Mã nhân viên");
       dgvQuanLyMuonTra.Columns.Add("TenNhanVien", "Tên nhân viên");
       dgvQuanLyMuonTra.Columns.Add("NgayMuon", "Ngày mượn");
@@ -48,6 +60,7 @@ namespace QLThuVien_3
         column.HeaderCell.Style.Font = new System.Drawing.Font("Segoe UI", 10, System.Drawing.FontStyle.Bold);
       }
 
+      dgvQuanLyMuonTra.DefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Regular);
       dgvQuanLyMuonTra.RowTemplate.Height = 35;
     }
 
@@ -92,6 +105,7 @@ namespace QLThuVien_3
       row.Cells["TenDocGia"].Value = muonSach.DocGia?.TenDocGia;
       row.Cells["MaSach"].Value = muonSach.MaSach;
       row.Cells["TenSach"].Value = muonSach.DanhMucSach?.TenSach;
+      row.Cells["SoLuongMuon"].Value = muonSach.SoLuongMuon;
       row.Cells["MaNhanVien"].Value = muonSach.MaNhanVien;
       row.Cells["TenNhanVien"].Value = muonSach.NhanVien?.TenNhanVien;
       row.Cells["NgayMuon"].Value = muonSach.NgayMuon.ToShortDateString();
@@ -108,13 +122,14 @@ namespace QLThuVien_3
         cmbMaDocGia.DisplayMember = "MaDocGia";
         cmbMaDocGia.ValueMember = "MaDocGia";
 
-        cmbMaSach.DataSource = context.DanhMucSaches.ToList();
-        cmbMaSach.DisplayMember = "MaSach";
-        cmbMaSach.ValueMember = "MaSach";
-
         cmbMaNhanVien.DataSource = context.NhanViens.ToList();
         cmbMaNhanVien.DisplayMember = "MaNhanVien";
         cmbMaNhanVien.ValueMember = "MaNhanVien";
+
+        cmbLocTheoTrangThai.Items.Add("Tất cả");
+        cmbLocTheoTrangThai.Items.Add("Đang mượn");
+        cmbLocTheoTrangThai.Items.Add("Đã trả");
+        cmbLocTheoTrangThai.SelectedIndex = 0;
       }
     }
 
@@ -122,9 +137,10 @@ namespace QLThuVien_3
     {
       txtMaMuon.ReadOnly = true;
       txtTenDocGia.ReadOnly = true;
-      txtTenSach.ReadOnly = true;
+      txtTenSach1.ReadOnly = true;
       txtTenNhanVien.ReadOnly = true;
       txtTrangThai.ReadOnly = true;
+      txtSoLuongSachConLai.ReadOnly = true;
     }
 
     private bool ValidateInput()
@@ -136,9 +152,9 @@ namespace QLThuVien_3
         errors.Add("Vui lòng chọn mã độc giả.");
       }
 
-      if (cmbMaSach.SelectedValue == null)
+      if (numMaSach1.Value <= 0)
       {
-        errors.Add("Vui lòng chọn mã sách.");
+        errors.Add("Vui lòng chọn mã sách hợp lệ.");
       }
 
       if (cmbMaNhanVien.SelectedValue == null)
@@ -159,30 +175,28 @@ namespace QLThuVien_3
     {
       using (var context = new QLThuVienContextDB())
       {
-        // Lấy mã mượn lớn nhất hiện tại
         var lastMaMuon = context.MuonSaches
             .OrderByDescending(ms => ms.MaMuon)
             .Select(ms => ms.MaMuon)
             .FirstOrDefault();
 
-        // Tạo mã mới
-        int newMaMuonNumber = 1; // Mặc định bắt đầu từ 1
+        int newMaMuonNumber = 1;
         if (lastMaMuon != null)
         {
-          // Lấy phần số từ mã mượn cuối
-          string numberPart = lastMaMuon.Substring(2); // Lấy phần xxx
-          newMaMuonNumber = int.Parse(numberPart) + 1; // Tăng lên 1
+          string numberPart = lastMaMuon.Substring(2);
+          newMaMuonNumber = int.Parse(numberPart) + 1;
         }
 
-        // Đảm bảo mã mới không vượt quá 999
         if (newMaMuonNumber > 999)
         {
           throw new Exception("Đã đạt giới hạn số phiếu mượn.");
         }
 
-        return "MM" + newMaMuonNumber.ToString("D3"); // Định dạng thành 3 chữ số
+        return "MM" + newMaMuonNumber.ToString("D3");
       }
     }
+
+    private int soLuongMuon;
 
     private void btnMuon_Click(object sender, EventArgs e)
     {
@@ -190,10 +204,28 @@ namespace QLThuVien_3
       {
         string maMuon = GenerateMaMuon();
         string maDocGia = cmbMaDocGia.SelectedValue.ToString();
-        int? maSach = cmbMaSach.SelectedValue != null ? (int?)cmbMaSach.SelectedValue : null;
+        int? maSach = (int?)numMaSach1.Value;
+        soLuongMuon = (int)numSoLuongMuon.Value;
+
+        if (soLuongMuon > 4)
+        {
+          MessageBox.Show("Số lượng sách mượn không được vượt quá 4 cho mỗi mã sách.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+          return;
+        }
 
         using (var context = new QLThuVienContextDB())
         {
+          var soLuongSachDaMuon = context.MuonSaches
+            .Where(ms => ms.MaDocGia == maDocGia && ms.MaSach == maSach && ms.TrangThai == "Đang mượn")
+            .Select(ms => (int?)ms.SoLuongMuon)
+            .Sum() ?? 0;
+
+          if (soLuongSachDaMuon + soLuongMuon > 4)
+          {
+            MessageBox.Show("Tổng số lượng sách mượn cho mã sách này không được vượt quá 4.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+          }
+
           var phieuDangMuon = context.MuonSaches
               .FirstOrDefault(ms => ms.MaDocGia == maDocGia && ms.MaSach == maSach && ms.TrangThai == "Đang mượn");
 
@@ -202,36 +234,48 @@ namespace QLThuVien_3
             MessageBox.Show("Không thể mượn sách này vì độc giả đã có phiếu mượn sách tương ứng.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
           }
+
+          var sach = context.DanhMucSaches.Find(maSach);
+          if (sach == null || sach.SoLuong < soLuongMuon)
+          {
+            MessageBox.Show("Sách không còn sẵn có để mượn.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+          }
+
+          sach.SoLuong -= soLuongMuon;
+          context.SaveChanges();
         }
 
-        muonSachHienTai = new MuonSach
+        var muonSach = new MuonSach
         {
           MaMuon = maMuon,
           MaDocGia = maDocGia,
           MaSach = maSach,
-          MaNhanVien = cmbMaNhanVien.SelectedValue.ToString(),
+          MaNhanVien = _nhanVien.MaNhanVien,
           NgayMuon = DateTime.Now,
           NgayTra = DateTime.Now.AddDays(14),
-          TrangThai = "Đang mượn"
+          TrangThai = "Đang mượn",
+          SoLuongMuon = soLuongMuon
         };
 
         try
         {
           using (var context = new QLThuVienContextDB())
           {
-            context.MuonSaches.Add(muonSachHienTai);
+            context.MuonSaches.Add(muonSach);
             context.SaveChanges();
           }
-
-          MessageBox.Show("Thêm phiếu mượn thành công! Mã mượn: " + maMuon);
-          LoadData();
-          ClearInputFields();
-          UpdateTotalReceipts(); // Đảm bảo gọi phương thức này
         }
         catch (Exception ex)
         {
           MessageBox.Show("Lỗi khi thêm phiếu mượn: " + ex.Message);
+          return;
         }
+
+        MessageBox.Show("Thêm phiếu mượn thành công! Mã mượn: " + maMuon);
+        LoadData();
+        ClearInputFields();
+        UpdateTotalReceipts();
       }
     }
 
@@ -239,6 +283,8 @@ namespace QLThuVien_3
     {
       if (muonSachHienTai != null)
       {
+        int soLuongTra = (int)numSoLuongMuon.Value;
+
         muonSachHienTai.NgayTraThucTe = DateTime.Now;
         muonSachHienTai.TrangThai = muonSachHienTai.NgayTraThucTe > muonSachHienTai.NgayTra ? "Trả muộn" : "Đã trả";
 
@@ -268,8 +314,8 @@ namespace QLThuVien_3
               MessageBox.Show("Sách không tồn tại.");
               return;
             }
-            sach.SoLuong += 1;
 
+            sach.SoLuong += soLuongTra;
             context.SaveChanges();
           }
 
@@ -324,7 +370,7 @@ namespace QLThuVien_3
             LoadData();
             ClearInputFields();
             muonSachHienTai = null;
-            UpdateTotalReceipts(); // Cập nhật lại tổng số phiếu
+            UpdateTotalReceipts();
           }
           catch (Exception ex)
           {
@@ -348,34 +394,53 @@ namespace QLThuVien_3
     {
       txtMaMuon.Clear();
       cmbMaDocGia.SelectedIndex = -1;
-      cmbMaSach.SelectedIndex = -1;
-      cmbMaNhanVien.SelectedIndex = -1;
+      numMaSach1.Value = 0;
       txtTrangThai.Clear();
       txtTenDocGia.Clear();
-      txtTenSach.Clear();
-      txtTenNhanVien.Clear();
+      txtTenSach1.Clear();
+      txtSoLuongSachConLai.Clear();
+      numSoLuongMuon.Value = 1;
+      txtTimKiemTheoTen.Clear();
     }
 
     private void UpdateTotalReceipts()
     {
-      lblTongPhieu.Text = $"Tổng phiếu: {danhSachMuonSach.Count}";
+      lblTongPhieu.Text = danhSachMuonSach.Count().ToString();
     }
 
-    private void cmbMaDocGia_SelectedIndexChanged(object sender, EventArgs e)
+    //private void cmbMaDocGia_SelectedIndexChanged(object sender, EventArgs e)
+    //{
+    //  if (cmbMaDocGia.SelectedValue != null)
+    //  {
+    //    var docGia = (DocGia)cmbMaDocGia.SelectedItem;
+    //    txtTenDocGia.Text = docGia?.TenDocGia;
+    //  }
+    //}
+
+    private void cmbMaDocGia_TextChanged(object sender, EventArgs e)
     {
-      if (cmbMaDocGia.SelectedValue != null)
+      string maDocGiaInput = cmbMaDocGia.Text.Trim();
+
+      if (!string.IsNullOrEmpty(maDocGiaInput))
       {
-        var docGia = (DocGia)cmbMaDocGia.SelectedItem;
-        txtTenDocGia.Text = docGia?.TenDocGia;
+        using (var context = new QLThuVienContextDB())
+        {
+          var docGia = context.DocGias
+              .FirstOrDefault(d => d.MaDocGia.Equals(maDocGiaInput, StringComparison.OrdinalIgnoreCase));
+
+          if (docGia != null)
+          {
+            txtTenDocGia.Text = docGia.TenDocGia;
+          }
+          else
+          {
+            txtTenDocGia.Clear();
+          }
+        }
       }
-    }
-
-    private void cmbMaSach_SelectedIndexChanged(object sender, EventArgs e)
-    {
-      if (cmbMaSach.SelectedValue != null)
+      else
       {
-        var sach = (DanhMucSach)cmbMaSach.SelectedItem;
-        txtTenSach.Text = sach?.TenSach;
+        txtTenDocGia.Clear();
       }
     }
 
@@ -397,43 +462,56 @@ namespace QLThuVien_3
         {
           txtMaMuon.Text = muonSachHienTai.MaMuon;
           cmbMaDocGia.SelectedValue = muonSachHienTai.MaDocGia;
-          cmbMaSach.SelectedValue = muonSachHienTai.MaSach;
+
+          if (muonSachHienTai.MaSach.HasValue)
+          {
+            numMaSach1.Value = muonSachHienTai.MaSach.Value;
+          }
+
           cmbMaNhanVien.SelectedValue = muonSachHienTai.MaNhanVien;
           dtpNgayMuon.Value = muonSachHienTai.NgayMuon;
           dtpNgayTra.Value = muonSachHienTai.NgayTra ?? DateTime.Now;
           txtTrangThai.Text = muonSachHienTai.TrangThai;
-
           txtTenDocGia.Text = muonSachHienTai.DocGia?.TenDocGia;
           txtTenNhanVien.Text = muonSachHienTai.NhanVien?.TenNhanVien;
-          txtTenSach.Text = muonSachHienTai.DanhMucSach?.TenSach;
+          txtTenSach1.Text = muonSachHienTai.DanhMucSach?.TenSach;
+
+          var sach = muonSachHienTai.DanhMucSach;
+          if (sach != null)
+          {
+            txtSoLuongSachConLai.Text = sach.SoLuong.ToString();
+          }
+          numSoLuongMuon.Value = muonSachHienTai.SoLuongMuon;
         }
       }
     }
 
     private void txtTimKiemTheoTen_TextChanged(object sender, EventArgs e)
     {
-      // Ngăn chặn thay đổi văn bản
       if (isChangingText) return;
 
-      // Lấy giá trị tìm kiếm
       string searchText = txtTimKiemTheoTen.Text.ToLower().Trim();
 
-      // Kiểm tra xem người dùng có nhập vào không
-      if (string.IsNullOrEmpty(searchText) || searchText == "tìm kiếm theo tên")
+      if (string.IsNullOrEmpty(searchText) || searchText == "mã phiếu, mã độc giả, mã nhân viên, mã sách")
       {
-        // Nếu không nhập gì, hiển thị lại danh sách đầy đủ
-        danhSachMuonSachHienTai = danhSachMuonSach; // Đặt lại danh sách hiện tại
+        danhSachMuonSachHienTai = danhSachMuonSach;
       }
       else
       {
-        // Lọc danh sách theo tên độc giả
         danhSachMuonSachHienTai = danhSachMuonSach
-            .Where(muonSach => muonSach.DocGia?.TenDocGia.ToLower().Contains(searchText) == true)
+            .Where(muonSach =>
+                muonSach.MaMuon.ToLower().Contains(searchText) ||
+                muonSach.MaDocGia.ToLower().Contains(searchText) ||
+                muonSach.MaNhanVien.ToLower().Contains(searchText) ||
+                (muonSach.DocGia?.TenDocGia.ToLower().Contains(searchText) == true) ||
+                (muonSach.NhanVien?.TenNhanVien.ToLower().Contains(searchText) == true) ||
+                muonSach.MaSach.ToString().Contains(searchText)
+            )
             .ToList();
       }
 
-      // Cập nhật giao diện
       HienThiDanhSachMuonSach();
+      lblTongPhieu.Text = danhSachMuonSachHienTai.Count().ToString();
     }
 
     private void dgvQuanLyMuonTra_RowPrePaint(object sender, DataGridViewRowPrePaintEventArgs e)
@@ -448,50 +526,91 @@ namespace QLThuVien_3
       }
     }
 
-    private void txtTimKiemTheoTen_Leave(object sender, EventArgs e)
-    {
-      // Kiểm tra và hiển thị watermark nếu TextBox trống
-      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text))
-      {
-        SetWatermark();
-      }
-    }
-
     private void txtTimKiemTheoTen_Click(object sender, EventArgs e)
     {
-      if (txtTimKiemTheoTen.Text == "Tìm kiếm theo tên")
+      if (txtTimKiemTheoTen.Text == "Mã phiếu, mã độc giả, mã nhân viên, mã sách")
       {
-        isChangingText = true; // Đánh dấu là đang thay đổi văn bản
-        txtTimKiemTheoTen.Text = ""; // Xóa watermark
-        txtTimKiemTheoTen.ForeColor = Color.Black; // Đặt lại màu chữ
-        txtTimKiemTheoTen.BackColor = Color.White; // Đặt lại màu nền
-        isChangingText = false; // Đánh dấu kết thúc thay đổi
+        isChangingText = true;
+        txtTimKiemTheoTen.Text = "";
+        txtTimKiemTheoTen.ForeColor = Color.Black;
+        txtTimKiemTheoTen.BackColor = Color.White;
+        isChangingText = false;
       }
     }
 
     private void SetWatermark()
     {
-      if (isChangingText) return; // Ngăn chặn việc gọi lại do thay đổi văn bản
+      if (isChangingText) return;
 
-      // Kiểm tra và thiết lập watermark
-      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text) || txtTimKiemTheoTen.Text == "Tìm kiếm theo tên")
+      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text) || txtTimKiemTheoTen.Text == "Mã phiếu, mã độc giả, mã nhân viên, mã sách")
       {
-        isChangingText = true; // Đánh dấu là đang thay đổi văn bản
-        txtTimKiemTheoTen.Text = "Tìm kiếm theo tên"; // Thiết lập watermark
-        txtTimKiemTheoTen.ForeColor = Color.Gray; // Đặt màu chữ
-        txtTimKiemTheoTen.BackColor = Color.LightGray; // Đặt màu nền
-        isChangingText = false; // Đánh dấu kết thúc thay đổi
+        isChangingText = true;
+        txtTimKiemTheoTen.Text = "Mã phiếu, mã độc giả, mã nhân viên, mã sách";
+        txtTimKiemTheoTen.ForeColor = Color.Gray;
+        txtTimKiemTheoTen.BackColor = Color.LightGray;
+        isChangingText = false;
       }
       else
       {
-        txtTimKiemTheoTen.ForeColor = Color.Black; // Đặt lại màu chữ
-        txtTimKiemTheoTen.BackColor = Color.White; // Đặt lại màu nền
+        txtTimKiemTheoTen.ForeColor = Color.Black;
+        txtTimKiemTheoTen.BackColor = Color.White;
       }
     }
 
-    private void UserControlMuonTra_Load(object sender, EventArgs e)
+    private void txtTimKiemTheoTen_Leave(object sender, EventArgs e)
     {
       SetWatermark();
+    }
+
+    private void numMaSach1_ValueChanged(object sender, EventArgs e)
+    {
+      int maSach;
+      if (int.TryParse(numMaSach1.Value.ToString(), out maSach))
+      {
+        using (var context = new QLThuVienContextDB())
+        {
+          var sach = context.DanhMucSaches.FirstOrDefault(s => s.MaSach == maSach);
+          if (sach != null)
+          {
+            txtTenSach1.Text = sach.TenSach;
+            txtSoLuongSachConLai.Text = sach.SoLuong.ToString();
+          }
+          else
+          {
+            txtTenSach1.Clear();
+            txtSoLuongSachConLai.Clear();
+          }
+        }
+      }
+      else
+      {
+        txtTenSach1.Clear();
+        txtSoLuongSachConLai.Clear();
+      }
+    }
+
+    private void cmbLocTheoTrangThai_SelectedIndexChanged(object sender, EventArgs e)
+    {
+      FilterMuonSachByStatus();
+    }
+
+    private void FilterMuonSachByStatus()
+    {
+      string selectedStatus = cmbLocTheoTrangThai.SelectedItem.ToString();
+
+      if (selectedStatus == "Tất cả")
+      {
+        danhSachMuonSachHienTai = danhSachMuonSach;
+      }
+      else
+      {
+        danhSachMuonSachHienTai = danhSachMuonSach
+            .Where(muonSach => muonSach.TrangThai == selectedStatus)
+            .ToList();
+      }
+
+      HienThiDanhSachMuonSach();
+      lblTongPhieu.Text = danhSachMuonSachHienTai.Count().ToString();
     }
   }
 }

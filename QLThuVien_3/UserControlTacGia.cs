@@ -20,12 +20,18 @@ namespace QLThuVien_3
     {
       InitializeComponent();
       InitializeDataGridView();
+
+      cmbLocTheoQuocTich.SelectedIndexChanged += (s, e) => FilterAuthors();
+      cmbLocTheoGioiTinh.SelectedIndexChanged += (s, e) => FilterAuthors();
     }
 
     private void UserControlTacGia_Load(object sender, EventArgs e)
     {
       LoadAuthorsFromDatabase();
+      LoadCountryList();
+      LoadGenderList();
       SetWatermark();
+      cmbQuocTich.SelectedIndex = -1;
     }
 
     private void InitializeDataGridView()
@@ -46,6 +52,7 @@ namespace QLThuVien_3
         column.HeaderCell.Style.Font = new System.Drawing.Font("Segoe UI", 10, System.Drawing.FontStyle.Bold);
       }
 
+      dgvQuanLyTacGia.DefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Regular);
       dgvQuanLyTacGia.RowTemplate.Height = 35;
     }
 
@@ -57,14 +64,53 @@ namespace QLThuVien_3
         {
           danhSachTacGia = context.TacGias.AsNoTracking().ToList();
         }
-        filteredAuthors = danhSachTacGia; // Khởi tạo danh sách đã lọc với danh sách gốc
-        DisplayAuthors(filteredAuthors); // Hiển thị danh sách tác giả ban đầu
+        filteredAuthors = danhSachTacGia;
+        DisplayAuthors(filteredAuthors);
         CalculateTotalAuthors();
       }
       catch (Exception ex)
       {
         MessageBox.Show("Lỗi khi tải dữ liệu tác giả: " + ex.Message);
       }
+    }
+
+    private void LoadCountryList()
+    {
+      var countries = new List<string>
+    {
+        "Brazil", "Chile", "Colombia", "Israel", "Mỹ", "Nigeria", "Nhật Bản",
+        "Vương Quốc Anh", "Việt Nam", "Pháp", "Đức", "Ý", "Tây Ban Nha",
+        "Úc", "Canada", "Ấn Độ", "Trung Quốc", "Hàn Quốc", "Nga",
+        "Mexico", "Nam Phi", "Thái Lan", "Singapore", "Philippines",
+        "Indonesia", "Malaysia", "Saudi Arabia", "UAE", "New Zealand",
+        "Argentina", "Bỉ", "Hà Lan", "Na Uy", "Đan Mạch", "Áo",
+        "Thụy Điển", "Hy Lạp", "Séc", "Hungary", "Thụy Sĩ",
+        "Bulgaria", "Romania", "Croatia", "Serbia", "Slovakia"
+    };
+
+      countries.Sort();
+      cmbQuocTich.DataSource = countries;
+      cmbQuocTich.SelectedIndex = -1;
+
+      cmbLocTheoQuocTich.Items.Clear();
+      cmbLocTheoQuocTich.Items.Add("Tất cả");
+      cmbLocTheoQuocTich.Items.AddRange(countries.ToArray());
+      cmbLocTheoQuocTich.SelectedIndex = 0;
+    }
+
+    private void LoadGenderList()
+    {
+      cmbGioiTinh.Items.Clear();
+      cmbGioiTinh.Items.Add("Nam");
+      cmbGioiTinh.Items.Add("Nữ");
+      cmbGioiTinh.Items.Add("Khác");
+
+      cmbLocTheoGioiTinh.Items.Clear();
+      cmbLocTheoGioiTinh.Items.Add("Tất cả");
+      cmbLocTheoGioiTinh.Items.Add("Nam");
+      cmbLocTheoGioiTinh.Items.Add("Nữ");
+      cmbLocTheoGioiTinh.Items.Add("Khác");
+      cmbLocTheoGioiTinh.SelectedIndex = 0;
     }
 
     private void DisplayAuthors(List<TacGia> authors)
@@ -98,17 +144,14 @@ namespace QLThuVien_3
         var result = MessageBox.Show("Bạn có chắc chắn muốn thêm tác giả này không?", "Xác nhận", MessageBoxButtons.YesNo);
         if (result == DialogResult.Yes)
         {
-          // Sinh mã tác giả mới
           string newMaTacGia = GenerateAuthorCode();
-          txtMaTacGia.Text = newMaTacGia; // Cập nhật mã tác giả vào trường (readonly)
+          txtMaTacGia.Text = newMaTacGia;
 
-          // Ghi tác giả vào cơ sở dữ liệu và kiểm tra kết quả
           bool isSuccess = SaveAuthorToDatabase();
           if (isSuccess)
           {
-            // Hiển thị thông báo thành công
             MessageBox.Show($"Tác giả mới đã được thêm với mã tác giả: {newMaTacGia}", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            LoadAuthorsFromDatabase(); // Tải lại danh sách tác giả
+            LoadAuthorsFromDatabase();
           }
         }
       }
@@ -118,27 +161,25 @@ namespace QLThuVien_3
     {
       using (var context = new QLThuVienContextDB())
       {
-        // Kiểm tra số điện thoại
         if (context.TacGias.Any(a => a.SoDienThoai == txtSoDienThoai.Text))
         {
           MessageBox.Show("Số điện thoại đã tồn tại. Vui lòng nhập số khác.");
           txtSoDienThoai.Focus();
-          return false; // Không thêm tác giả
+          return false;
         }
 
-        // Kiểm tra email
         if (context.TacGias.Any(a => a.Email == txtEmail.Text))
         {
           MessageBox.Show("Email đã tồn tại. Vui lòng nhập email khác.");
           txtEmail.Focus();
-          return false; // Không thêm tác giả
+          return false;
         }
 
         var tacGia = new TacGia
         {
           MaTacGia = txtMaTacGia.Text,
           TenTacGia = txtTenTacGia.Text,
-          QuocTich = txtQuocTich.Text,
+          QuocTich = cmbQuocTich.SelectedItem.ToString(),
           DiaChi = txtDiaChi.Text,
           GioiTinh = cmbGioiTinh.SelectedItem.ToString(),
           NgaySinh = dtpNgaySinh.Value,
@@ -150,7 +191,7 @@ namespace QLThuVien_3
         context.SaveChanges();
       }
       ClearInputFields();
-      return true; // Thêm tác giả thành công
+      return true;
     }
 
     private void btnSua_Click(object sender, EventArgs e)
@@ -180,7 +221,6 @@ namespace QLThuVien_3
         var tacGia = context.TacGias.Find(tacGiaHienTai.MaTacGia);
         if (tacGia != null)
         {
-          // Kiểm tra trùng số điện thoại
           if (txtSoDienThoai.Text != tacGia.SoDienThoai &&
               context.TacGias.Any(a => a.SoDienThoai == txtSoDienThoai.Text))
           {
@@ -189,7 +229,6 @@ namespace QLThuVien_3
             return;
           }
 
-          // Kiểm tra trùng email
           if (txtEmail.Text != tacGia.Email &&
               context.TacGias.Any(a => a.Email == txtEmail.Text))
           {
@@ -198,9 +237,8 @@ namespace QLThuVien_3
             return;
           }
 
-          // Cập nhật thông tin tác giả
           tacGia.TenTacGia = txtTenTacGia.Text;
-          tacGia.QuocTich = txtQuocTich.Text;
+          tacGia.QuocTich = cmbQuocTich.SelectedItem.ToString();
           tacGia.DiaChi = txtDiaChi.Text;
           tacGia.GioiTinh = cmbGioiTinh.SelectedItem.ToString();
           tacGia.NgaySinh = dtpNgaySinh.Value;
@@ -215,7 +253,6 @@ namespace QLThuVien_3
 
     private bool ValidateInput()
     {
-      // Kiểm tra tên tác giả
       if (string.IsNullOrWhiteSpace(txtTenTacGia.Text) ||
           !Regex.IsMatch(txtTenTacGia.Text, @"^[\p{L}\d\s]+$"))
       {
@@ -224,16 +261,13 @@ namespace QLThuVien_3
         return false;
       }
 
-      // Kiểm tra quốc tịch
-      if (string.IsNullOrWhiteSpace(txtQuocTich.Text) ||
-          !Regex.IsMatch(txtQuocTich.Text, @"^[\p{L}\s]+$"))
+      if (cmbQuocTich.SelectedItem == null)
       {
-        MessageBox.Show("Quốc tịch chỉ chứa chữ cái tiếng Việt và khoảng trắng.");
-        txtQuocTich.Focus();
+        MessageBox.Show("Vui lòng chọn quốc tịch.");
+        cmbQuocTich.Focus();
         return false;
       }
 
-      // Kiểm tra địa chỉ (cho phép dấu ',' và '.')
       if (string.IsNullOrWhiteSpace(txtDiaChi.Text) ||
           !Regex.IsMatch(txtDiaChi.Text, @"^[\p{L}\d\s,.]+$"))
       {
@@ -242,7 +276,13 @@ namespace QLThuVien_3
         return false;
       }
 
-      // Kiểm tra ngày sinh (14 tuổi trở lên)
+      if (cmbGioiTinh.SelectedItem == null)
+      {
+        MessageBox.Show("Vui lòng chọn giới tính.");
+        cmbGioiTinh.Focus();
+        return false;
+      }
+
       if (dtpNgaySinh.Value > DateTime.Now.AddYears(-14))
       {
         MessageBox.Show("Tác giả phải từ 14 tuổi trở lên.");
@@ -250,7 +290,6 @@ namespace QLThuVien_3
         return false;
       }
 
-      // Kiểm tra số điện thoại
       if (string.IsNullOrWhiteSpace(txtSoDienThoai.Text) ||
           !Regex.IsMatch(txtSoDienThoai.Text, @"^0\d{9}$"))
       {
@@ -259,7 +298,6 @@ namespace QLThuVien_3
         return false;
       }
 
-      // Kiểm tra email
       if (string.IsNullOrWhiteSpace(txtEmail.Text) ||
           !Regex.IsMatch(txtEmail.Text, @"^[\w\.-]+@gmail\.com$"))
       {
@@ -295,11 +333,10 @@ namespace QLThuVien_3
         var tacGia = context.TacGias.Find(tacGiaHienTai.MaTacGia);
         if (tacGia != null)
         {
-          // Kiểm tra có bản ghi liên quan trong DanhMucSach
           if (context.DanhMucSaches.Any(dms => dms.MaTacGia == tacGia.MaTacGia))
           {
             MessageBox.Show("Không thể xóa tác giả này vì còn tồn tại sách liên quan. Vui lòng xóa các sách liên quan trước.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return; // Dừng lại nếu có liên kết
+            return;
           }
 
           context.TacGias.Remove(tacGia);
@@ -314,44 +351,42 @@ namespace QLThuVien_3
     private void btnLamMoi_Click(object sender, EventArgs e)
     {
       ClearInputFields();
+      SetWatermark();
     }
 
     private void ClearInputFields()
     {
       txtMaTacGia.Clear();
       txtTenTacGia.Clear();
-      txtQuocTich.Clear();
+      cmbQuocTich.SelectedIndex = -1;
       txtDiaChi.Clear();
       cmbGioiTinh.SelectedItem = null;
       dtpNgaySinh.Value = DateTime.Now;
       txtSoDienThoai.Clear();
       txtEmail.Clear();
       tacGiaHienTai = null;
+      txtTimKiemTheoTen.Clear();
       txtTenTacGia.Focus();
     }
 
     private void txtTimKiemTheoTen_TextChanged(object sender, EventArgs e)
     {
-      // Ngăn chặn thay đổi văn bản trong quá trình xử lý
       if (isChangingText) return;
 
-      // Lấy giá trị tìm kiếm và chuẩn hóa
       string searchText = txtTimKiemTheoTen.Text.ToLower().Trim();
 
-      // Nếu người dùng không nhập gì hoặc nhập watermark, hiển thị lại danh sách gốc
-      if (string.IsNullOrEmpty(searchText) || searchText == "tìm kiếm theo tên")
+      if (string.IsNullOrEmpty(searchText) || searchText == "tìm kiếm theo mã/tên")
       {
-        filteredAuthors = danhSachTacGia; // Đặt lại danh sách đã lọc
+        filteredAuthors = danhSachTacGia;
       }
       else
       {
-        // Lọc danh sách tác giả theo tên
         filteredAuthors = danhSachTacGia
-            .Where(tacGia => tacGia.TenTacGia.ToLower().Contains(searchText))
+            .Where(tacGia => tacGia.TenTacGia.ToLower().Contains(searchText) ||
+                             tacGia.MaTacGia.ToLower().Contains(searchText))
             .ToList();
       }
 
-      // Cập nhật giao diện với danh sách đã lọc
       DisplayAuthors(filteredAuthors);
     }
 
@@ -359,13 +394,21 @@ namespace QLThuVien_3
     {
       if (e.RowIndex >= 0 && e.RowIndex < (filteredAuthors.Count > 0 ? filteredAuthors.Count : danhSachTacGia.Count))
       {
+        if (dgvQuanLyTacGia.Rows[e.RowIndex].Cells["MaTacGia"].Value == null ||
+            dgvQuanLyTacGia.Rows[e.RowIndex].Cells["MaTacGia"].Value == DBNull.Value)
+        {
+          ClearInputFields();
+          tacGiaHienTai = null;
+          return;
+        }
+
         tacGiaHienTai = filteredAuthors.Count > 0 ? filteredAuthors[e.RowIndex] : danhSachTacGia[e.RowIndex];
 
         if (tacGiaHienTai != null)
         {
           txtMaTacGia.Text = tacGiaHienTai.MaTacGia;
           txtTenTacGia.Text = tacGiaHienTai.TenTacGia;
-          txtQuocTich.Text = tacGiaHienTai.QuocTich;
+          cmbQuocTich.SelectedItem = tacGiaHienTai.QuocTich;
           txtDiaChi.Text = tacGiaHienTai.DiaChi;
           cmbGioiTinh.SelectedItem = tacGiaHienTai.GioiTinh;
           dtpNgaySinh.Value = tacGiaHienTai.NgaySinh ?? DateTime.Now;
@@ -377,7 +420,7 @@ namespace QLThuVien_3
 
     private void CalculateTotalAuthors()
     {
-      lblTongTacGia.Text = $"Tổng tác giả: {danhSachTacGia.Count}";
+      lblTongTacGia.Text = danhSachTacGia.Count().ToString();
     }
 
     private void dgvQuanLyTacGia_RowPrePaint(object sender, DataGridViewRowPrePaintEventArgs e)
@@ -396,24 +439,21 @@ namespace QLThuVien_3
     {
       using (var context = new QLThuVienContextDB())
       {
-        // Tìm mã tác giả lớn nhất hiện có
         var maxMaTacGia = context.TacGias
             .Where(a => a.MaTacGia.StartsWith("TG"))
             .Select(a => a.MaTacGia)
-            .DefaultIfEmpty("TG000") // Nếu không có tác giả nào thì mặc định là TG000
+            .DefaultIfEmpty("TG000")
             .Max();
 
-        // Trích xuất số từ mã tác giả lớn nhất
-        int maxId = int.Parse(maxMaTacGia.Substring(2)); // Bỏ 'TG' và chuyển sang số
-        int newId = maxId + 1; // Tăng ID lên 1
+        int maxId = int.Parse(maxMaTacGia.Substring(2));
+        int newId = maxId + 1;
 
-        return $"TG{newId.ToString("D3")}"; // Định dạng mã dưới dạng TGxxx
+        return $"TG{newId.ToString("D3")}";
       }
     }
 
     private void txtTimKiemTheoTen_Leave(object sender, EventArgs e)
     {
-      // Kiểm tra và hiển thị watermark nếu TextBox trống
       if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text))
       {
         SetWatermark();
@@ -422,34 +462,63 @@ namespace QLThuVien_3
 
     private void txtTimKiemTheoTen_Click(object sender, EventArgs e)
     {
-      if (txtTimKiemTheoTen.Text == "Tìm kiếm theo tên")
+      if (txtTimKiemTheoTen.Text == "Tìm kiếm theo mã/tên")
       {
-        isChangingText = true; // Đánh dấu là đang thay đổi văn bản
-        txtTimKiemTheoTen.Text = ""; // Xóa watermark
-        txtTimKiemTheoTen.ForeColor = Color.Black; // Đặt lại màu chữ
-        txtTimKiemTheoTen.BackColor = Color.White; // Đặt lại màu nền
-        isChangingText = false; // Đánh dấu kết thúc thay đổi
+        isChangingText = true;
+        txtTimKiemTheoTen.Text = "";
+        txtTimKiemTheoTen.ForeColor = Color.Black;
+        txtTimKiemTheoTen.BackColor = Color.White;
+        isChangingText = false;
       }
     }
 
     private void SetWatermark()
     {
-      if (isChangingText) return; // Ngăn chặn việc gọi lại do thay đổi văn bản
+      if (isChangingText) return;
 
-      // Kiểm tra và thiết lập watermark
-      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text) || txtTimKiemTheoTen.Text == "Tìm kiếm theo tên")
+      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text) || txtTimKiemTheoTen.Text == "Tìm kiếm theo mã/tên")
       {
-        isChangingText = true; // Đánh dấu là đang thay đổi văn bản
-        txtTimKiemTheoTen.Text = "Tìm kiếm theo tên"; // Thiết lập watermark
-        txtTimKiemTheoTen.ForeColor = Color.Gray; // Đặt màu chữ
-        txtTimKiemTheoTen.BackColor = Color.LightGray; // Đặt màu nền
-        isChangingText = false; // Đánh dấu kết thúc thay đổi
+        isChangingText = true;
+        txtTimKiemTheoTen.Text = "Tìm kiếm theo mã/tên";
+        txtTimKiemTheoTen.ForeColor = Color.Gray;
+        txtTimKiemTheoTen.BackColor = Color.LightGray;
+        isChangingText = false;
       }
       else
       {
-        txtTimKiemTheoTen.ForeColor = Color.Black; // Đặt lại màu chữ
-        txtTimKiemTheoTen.BackColor = Color.White; // Đặt lại màu nền
+        txtTimKiemTheoTen.ForeColor = Color.Black;
+        txtTimKiemTheoTen.BackColor = Color.White;
       }
+    }
+
+    private void cmbLocTheoQuocTich_SelectedIndexChanged(object sender, EventArgs e)
+    {
+    }
+
+    private void cmbLocTheoGioiTinh_SelectedIndexChanged(object sender, EventArgs e)
+    {
+    }
+
+    private void FilterAuthors()
+    {
+      string selectedCountry = cmbLocTheoQuocTich.SelectedItem?.ToString();
+      string selectedGender = cmbLocTheoGioiTinh.SelectedItem?.ToString();
+
+      filteredAuthors = danhSachTacGia;
+
+      if (!string.IsNullOrEmpty(selectedCountry) && selectedCountry != "Tất cả")
+      {
+        filteredAuthors = filteredAuthors.Where(a => a.QuocTich == selectedCountry).ToList();
+      }
+
+      // Lọc theo giới tính
+      if (!string.IsNullOrEmpty(selectedGender) && selectedGender != "Tất cả")
+      {
+        filteredAuthors = filteredAuthors.Where(a => a.GioiTinh == selectedGender).ToList();
+      }
+
+      DisplayAuthors(filteredAuthors);
+      lblTongTacGia.Text = filteredAuthors.Count().ToString();
     }
   }
 }

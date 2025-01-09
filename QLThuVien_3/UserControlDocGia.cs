@@ -20,8 +20,25 @@ namespace QLThuVien_3
     {
       InitializeComponent();
       InitializeDataGridView();
-      LoadData();
-      txtMaDocGia.ReadOnly = true;  // Đảm bảo trường mã độc giả chỉ đọc
+    }
+
+    private void UserControlDocGia_Load(object sender, EventArgs e)
+    {
+      LoadData(); // Gọi LoadData tại đây
+
+      cmbGioiTinh.Items.Add("Nam");
+      cmbGioiTinh.Items.Add("Nữ");
+      cmbGioiTinh.Items.Add("Khác");
+      cmbGioiTinh.SelectedIndex = -1;
+
+      cmbLocTheoGioiTinh.Items.Clear();
+      cmbLocTheoGioiTinh.Items.Add("Tất cả");
+      cmbLocTheoGioiTinh.Items.Add("Nam");
+      cmbLocTheoGioiTinh.Items.Add("Nữ");
+      cmbLocTheoGioiTinh.Items.Add("Khác");
+      cmbLocTheoGioiTinh.SelectedIndex = 0;
+
+      SetWatermark();
     }
 
     private void InitializeDataGridView()
@@ -40,6 +57,7 @@ namespace QLThuVien_3
         column.HeaderCell.Style.Font = new Font("Segoe UI", 10, FontStyle.Bold);
       }
 
+      dgvQuanLyDocGia.DefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Regular);
       dgvQuanLyDocGia.RowTemplate.Height = 35;
     }
 
@@ -49,7 +67,6 @@ namespace QLThuVien_3
       {
         using (var context = new QLThuVienContextDB())
         {
-          // Kiểm tra xem bảng DocGias có dữ liệu không
           danhSachDocGia = context.DocGias.ToList();
           if (danhSachDocGia.Count == 0)
           {
@@ -57,7 +74,7 @@ namespace QLThuVien_3
           }
         }
         HienThiDanhSachDocGia(danhSachDocGia);
-        UpdateTongDocGia();
+        UpdateTongDocGia(); // Cập nhật tổng số độc giả
       }
       catch (Exception ex)
       {
@@ -72,6 +89,7 @@ namespace QLThuVien_3
       {
         AddDocGiaToGrid(docGia);
       }
+      UpdateTongDocGia();
     }
 
     private void AddDocGiaToGrid(DocGia docGia)
@@ -94,8 +112,8 @@ namespace QLThuVien_3
       txtSoDienThoai.Clear();
       txtDiaChi.Clear();
       txtEmail.Clear();
-      rdoNam.Checked = false;
-      rdoNu.Checked = false;
+      cmbGioiTinh.SelectedIndex = -1;
+      txtTimKiemTheoTen.Clear();
       txtTenDocGia.Focus();
     }
 
@@ -116,6 +134,13 @@ namespace QLThuVien_3
       {
         MessageBox.Show("Số điện thoại phải bắt đầu bằng số 0 và có độ dài 10.");
         txtSoDienThoai.Focus();
+        return false;
+      }
+
+      if (string.IsNullOrWhiteSpace(cmbGioiTinh.SelectedItem?.ToString()))
+      {
+        MessageBox.Show("Vui lòng chọn giới tính.");
+        cmbGioiTinh.Focus();
         return false;
       }
 
@@ -174,10 +199,17 @@ namespace QLThuVien_3
     {
       if (ValidateInput())
       {
-        // Kiểm tra trùng lặp số điện thoại và email
-        if (IsPhoneNumberExists(txtSoDienThoai.Text) || IsEmailExists(txtEmail.Text))
+        if (IsPhoneNumberExists(txtSoDienThoai.Text))
         {
-          MessageBox.Show("Số điện thoại hoặc email đã tồn tại. Vui lòng nhập lại.");
+          MessageBox.Show("Số điện thoại đã tồn tại. Vui lòng nhập số điện thoại khác.");
+          txtSoDienThoai.Focus();
+          return;
+        }
+
+        if (IsEmailExists(txtEmail.Text))
+        {
+          MessageBox.Show("Email đã tồn tại. Vui lòng nhập email khác.");
+          txtEmail.Focus();
           return;
         }
 
@@ -186,7 +218,7 @@ namespace QLThuVien_3
           MaDocGia = GenerateDocGiaCode(),
           TenDocGia = txtTenDocGia.Text,
           SoDienThoai = txtSoDienThoai.Text,
-          GioiTinh = rdoNam.Checked ? "Nam" : "Nữ",
+          GioiTinh = cmbGioiTinh.SelectedItem.ToString(),
           DiaChi = txtDiaChi.Text,
           Email = txtEmail.Text
         };
@@ -212,14 +244,13 @@ namespace QLThuVien_3
 
     private void btnSua_Click(object sender, EventArgs e)
     {
-      if (docGiaHienTai != null)
+      if (docGiaHienTai != null && !string.IsNullOrEmpty(docGiaHienTai.MaDocGia))
       {
         if (ValidateInput())
         {
-          // Kiểm tra trùng lặp số điện thoại và email
           if (txtSoDienThoai.Text != docGiaHienTai.SoDienThoai && IsPhoneNumberExists(txtSoDienThoai.Text))
           {
-            MessageBox.Show("Số điện thoại đã tồn tại. Vui lòng nhập số khác.");
+            MessageBox.Show("Số điện thoại đã tồn tại. Vui lòng nhập số điện thoại khác.");
             txtSoDienThoai.Focus();
             return;
           }
@@ -233,7 +264,7 @@ namespace QLThuVien_3
 
           docGiaHienTai.TenDocGia = txtTenDocGia.Text;
           docGiaHienTai.SoDienThoai = txtSoDienThoai.Text;
-          docGiaHienTai.GioiTinh = rdoNam.Checked ? "Nam" : "Nữ";
+          docGiaHienTai.GioiTinh = cmbGioiTinh.SelectedItem.ToString();
           docGiaHienTai.DiaChi = txtDiaChi.Text;
           docGiaHienTai.Email = txtEmail.Text;
 
@@ -257,13 +288,13 @@ namespace QLThuVien_3
       }
       else
       {
-        MessageBox.Show("Vui lòng chọn một hàng để sửa.");
+        MessageBox.Show("Vui lòng chọn một độc giả hợp lệ để sửa.");
       }
     }
 
     private void btnXoa_Click(object sender, EventArgs e)
     {
-      if (docGiaHienTai != null)
+      if (docGiaHienTai != null && !string.IsNullOrEmpty(docGiaHienTai.MaDocGia))
       {
         using (var context = new QLThuVienContextDB())
         {
@@ -298,7 +329,7 @@ namespace QLThuVien_3
       }
       else
       {
-        MessageBox.Show("Vui lòng chọn một hàng để xóa.");
+        MessageBox.Show("Vui lòng chọn một độc giả hợp lệ để xóa.");
       }
     }
 
@@ -310,7 +341,7 @@ namespace QLThuVien_3
 
     private void UpdateTongDocGia()
     {
-      lblTongDocGia.Text = $"Tổng độc giả: {danhSachDocGia.Count}";
+      lblTongDocGia.Text = danhSachDocGia.Count().ToString();
     }
 
     private void dgvQuanLyDocGia_CellClick(object sender, DataGridViewCellEventArgs e)
@@ -325,10 +356,17 @@ namespace QLThuVien_3
           txtTenDocGia.Text = docGiaHienTai.TenDocGia;
           txtSoDienThoai.Text = docGiaHienTai.SoDienThoai;
           txtDiaChi.Text = docGiaHienTai.DiaChi;
-          rdoNam.Checked = docGiaHienTai.GioiTinh == "Nam";
-          rdoNu.Checked = docGiaHienTai.GioiTinh == "Nữ";
+          cmbGioiTinh.SelectedItem = docGiaHienTai.GioiTinh;
           txtEmail.Text = docGiaHienTai.Email;
         }
+        else
+        {
+          ClearInputFields();
+        }
+      }
+      else
+      {
+        ClearInputFields();
       }
     }
 
@@ -346,27 +384,25 @@ namespace QLThuVien_3
 
     private void SetWatermark()
     {
-      if (isChangingText) return; // Ngăn chặn việc gọi lại do thay đổi văn bản
+      if (isChangingText) return;
 
-      // Kiểm tra và thiết lập watermark
-      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text) || txtTimKiemTheoTen.Text == "Tìm kiếm theo tên")
+      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text) || txtTimKiemTheoTen.Text == "Tìm kiếm theo mã hoặc tên")
       {
-        isChangingText = true; // Đánh dấu là đang thay đổi văn bản
-        txtTimKiemTheoTen.Text = "Tìm kiếm theo tên"; // Thiết lập watermark
-        txtTimKiemTheoTen.ForeColor = Color.Gray; // Đặt màu chữ
-        txtTimKiemTheoTen.BackColor = Color.LightGray; // Đặt màu nền
-        isChangingText = false; // Đánh dấu kết thúc thay đổi
+        isChangingText = true;
+        txtTimKiemTheoTen.Text = "Tìm kiếm theo mã hoặc tên";
+        txtTimKiemTheoTen.ForeColor = Color.Gray;
+        txtTimKiemTheoTen.BackColor = Color.LightGray;
+        isChangingText = false;
       }
       else
       {
-        txtTimKiemTheoTen.ForeColor = Color.Black; // Đặt lại màu chữ
-        txtTimKiemTheoTen.BackColor = Color.White; // Đặt lại màu nền
+        txtTimKiemTheoTen.ForeColor = Color.Black;
+        txtTimKiemTheoTen.BackColor = Color.White;
       }
     }
 
     private void txtTimKiemTheoTen_Leave(object sender, EventArgs e)
     {
-      // Kiểm tra và hiển thị watermark nếu TextBox trống
       if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text))
       {
         SetWatermark();
@@ -375,38 +411,50 @@ namespace QLThuVien_3
 
     private void txtTimKiemTheoTen_Click(object sender, EventArgs e)
     {
-      if (txtTimKiemTheoTen.Text == "Tìm kiếm theo tên")
+      if (txtTimKiemTheoTen.Text == "Tìm kiếm theo mã hoặc tên")
       {
-        isChangingText = true; // Đánh dấu là đang thay đổi văn bản
-        txtTimKiemTheoTen.Text = ""; // Xóa watermark
-        txtTimKiemTheoTen.ForeColor = Color.Black; // Đặt lại màu chữ
-        txtTimKiemTheoTen.BackColor = Color.White; // Đặt lại màu nền
-        isChangingText = false; // Đánh dấu kết thúc thay đổi
+        isChangingText = true;
+        txtTimKiemTheoTen.Text = "";
+        txtTimKiemTheoTen.ForeColor = Color.Black;
+        txtTimKiemTheoTen.BackColor = Color.White;
+        isChangingText = false;
       }
     }
 
     private void txtTimKiemTheoTen_TextChanged(object sender, EventArgs e)
     {
-      // Ngăn chặn thay đổi văn bản
       if (isChangingText) return;
-
-      // Nếu người dùng nhập ký tự, không hiển thị watermark
       string searchText = txtTimKiemTheoTen.Text.ToLower().Trim();
 
-      // Cập nhật danh sách độc giả chỉ nếu người dùng không nhập watermark
-      if (searchText != "tìm kiếm theo tên")
+      if (searchText != "tìm kiếm theo mã hoặc tên")
       {
         filteredList = danhSachDocGia
-            .Where(docGia => docGia.TenDocGia.ToLower().Contains(searchText))
+            .Where(docGia => docGia.TenDocGia.ToLower().Contains(searchText) ||
+                             docGia.MaDocGia.ToLower().Contains(searchText))
             .ToList();
 
         HienThiDanhSachDocGia(filteredList);
+        lblTongDocGia.Text = filteredList.Count().ToString();
       }
     }
 
-    private void UserControlDocGia_Load(object sender, EventArgs e)
+    private void cmbLocTheoGioiTinh_SelectedIndexChanged(object sender, EventArgs e)
     {
-      SetWatermark();
+      string selectedGender = cmbLocTheoGioiTinh.SelectedItem?.ToString();
+
+      if (selectedGender == "Tất cả" || string.IsNullOrEmpty(selectedGender))
+      {
+        HienThiDanhSachDocGia(danhSachDocGia);
+      }
+      else
+      {
+        filteredList = danhSachDocGia
+            .Where(docGia => docGia.GioiTinh == selectedGender)
+            .ToList();
+
+        HienThiDanhSachDocGia(filteredList);
+        lblTongDocGia.Text = filteredList.Count().ToString();
+      }
     }
   }
 }

@@ -126,12 +126,6 @@
     <Compile Include="UserControlDocGia.Designer.cs">
       <DependentUpon>UserControlDocGia.cs</DependentUpon>
     </Compile>
-    <Compile Include="UserControlGioiThieu.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="UserControlGioiThieu.Designer.cs">
-      <DependentUpon>UserControlGioiThieu.cs</DependentUpon>
-    </Compile>
     <Compile Include="UserControlMuonTra.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -173,9 +167,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="UserControlDocGia.resx">
       <DependentUpon>UserControlDocGia.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="UserControlGioiThieu.resx">
-      <DependentUpon>UserControlGioiThieu.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="UserControlMuonTra.resx">
       <DependentUpon>UserControlMuonTra.cs</DependentUpon>

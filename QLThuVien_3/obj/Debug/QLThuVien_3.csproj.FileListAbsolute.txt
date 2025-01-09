@@ -5,7 +5,6 @@ C:\Users\Hung\Downloads\QLThuVien\QLThuVien\QLThuVien\QLThuVien\QLThuVien_3\obj\
 C:\Users\Hung\Downloads\QLThuVien\QLThuVien\QLThuVien\QLThuVien\QLThuVien_3\obj\Debug\QLThuVien_3.UserControlBaoCaoThongKe.resources
 C:\Users\Hung\Downloads\QLThuVien\QLThuVien\QLThuVien\QLThuVien\QLThuVien_3\obj\Debug\QLThuVien_3.UserControlDanhMucSach.resources
 C:\Users\Hung\Downloads\QLThuVien\QLThuVien\QLThuVien\QLThuVien\QLThuVien_3\obj\Debug\QLThuVien_3.UserControlDocGia.resources
-C:\Users\Hung\Downloads\QLThuVien\QLThuVien\QLThuVien\QLThuVien\QLThuVien_3\obj\Debug\QLThuVien_3.UserControlGioiThieu.resources
 C:\Users\Hung\Downloads\QLThuVien\QLThuVien\QLThuVien\QLThuVien\QLThuVien_3\obj\Debug\QLThuVien_3.UserControlMuonTra.resources
 C:\Users\Hung\Downloads\QLThuVien\QLThuVien\QLThuVien\QLThuVien\QLThuVien_3\obj\Debug\QLThuVien_3.UserControlNhanVien.resources
 C:\Users\Hung\Downloads\QLThuVien\QLThuVien\QLThuVien\QLThuVien\QLThuVien_3\obj\Debug\QLThuVien_3.UserControlTacGia.resources

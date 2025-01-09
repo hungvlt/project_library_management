@@ -33,7 +33,6 @@ namespace QLThuVien_3
 
     private void InitializeDataGridView()
     {
-      dgvQuanLySach.Size = new Size(805, 570);
       dgvQuanLySach.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
       dgvQuanLySach.Columns.Add("ID", "ID");
@@ -51,6 +50,7 @@ namespace QLThuVien_3
         column.HeaderCell.Style.Font = new Font("Segoe UI", 10, FontStyle.Bold);
       }
 
+      dgvQuanLySach.DefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Regular);
       dgvQuanLySach.RowTemplate.Height = 35;
     }
 
@@ -67,21 +67,47 @@ namespace QLThuVien_3
       {
         danhSachTacGia = context.TacGias.ToList();
       }
+
+      danhSachTacGia.Insert(0, new TacGia { MaTacGia = "ALL", TenTacGia = "Tất cả" });
+
       cmbAuthor.DataSource = danhSachTacGia;
       cmbAuthor.DisplayMember = "TenTacGia";
       cmbAuthor.ValueMember = "MaTacGia";
+
+      cmbLocTheoTacGia.DataSource = danhSachTacGia.ToList();
+      cmbLocTheoTacGia.DisplayMember = "TenTacGia";
+      cmbLocTheoTacGia.ValueMember = "MaTacGia";
+
+      cmbLocTheoTacGia.SelectedIndex = 0;
     }
 
     private void LoadCategoriesIntoComboBox()
     {
-      cmbTheLoai.Items.AddRange(new object[]
+      // Xóa tất cả các mục hiện có trước khi thêm
+      cmbTheLoai.Items.Clear();
+      cmbLocTheoTheLoai.Items.Clear();
+
+      // Thêm "Tất cả" vào danh sách thể loại
+      cmbLocTheoTheLoai.Items.Add("Tất cả");
+
+      // Thêm các thể loại khác
+      var categories = new object[]
       {
-                "Khoa học", "Văn học", "Công nghệ", "Tiểu thuyết", "Tự truyện",
-                "Lịch sử", "Kinh doanh", "Giáo dục", "Hư cấu", "Triết học",
-                "Tâm lý học", "Ngữ văn", "Khoa học xã hội", "Thể thao",
-                "Du lịch", "Nấu ăn", "Nhạc", "Sân khấu", "Thiếu nhi",
-                "Kinh điển", "Sách điện tử"
-      });
+        "Khoa học", "Văn học", "Công nghệ", "Tiểu thuyết", "Tự truyện",
+        "Lịch sử", "Kinh doanh", "Giáo dục", "Hư cấu", "Triết học",
+        "Tâm lý học", "Ngữ văn", "Khoa học xã hội", "Thể thao",
+        "Du lịch", "Nấu ăn", "Nhạc", "Sân khấu", "Thiếu nhi",
+        "Kinh điển", "Sách điện tử"
+      };
+
+      // Thêm các thể loại vào cmbTheLoai
+      cmbTheLoai.Items.AddRange(categories);
+
+      // Thêm các thể loại vào cmbLocTheoTheLoai
+      cmbLocTheoTheLoai.Items.AddRange(categories);
+
+      // Đặt giá trị mặc định cho cmbLocTheoTheLoai
+      cmbLocTheoTheLoai.SelectedIndex = 0; // Chọn "Tất cả"
     }
 
     private void LoadBooksFromDatabase()
@@ -104,15 +130,10 @@ namespace QLThuVien_3
     {
       int rowIndex = dgvQuanLySach.Rows.Add();
       DataGridViewRow row = dgvQuanLySach.Rows[rowIndex];
-
       row.Cells["ID"].Value = sach.MaSach;
       row.Cells["Tên sách"].Value = sach.TenSach;
-
-      // Gán tên tác giả, chắc chắn rằng tacGia không null
       var tacGia = danhSachTacGia.FirstOrDefault(a => a.MaTacGia == sach.MaTacGia);
       row.Cells["Tác giả"].Value = tacGia != null ? tacGia.TenTacGia : string.Empty;
-
-      // Các giá trị khác
       row.Cells["Giá"].Value = sach.Gia;
       row.Cells["Thể loại"].Value = sach.TheLoai;
       row.Cells["NXB"].Value = sach.NhaXuatBan;
@@ -127,7 +148,7 @@ namespace QLThuVien_3
       {
         SaveBookToDatabase();
         LoadBooksFromDatabase();
-        MessageBox.Show("Thêm sách thành công!");
+        CalculateTotalBooks();
       }
     }
 
@@ -137,7 +158,7 @@ namespace QLThuVien_3
       {
         UpdateBookInDatabase();
         LoadBooksFromDatabase();
-        MessageBox.Show("Sửa sách thành công!");
+        CalculateTotalBooks();
       }
       else
       {
@@ -149,23 +170,58 @@ namespace QLThuVien_3
     {
       if (sachHienTai != null)
       {
-        var confirmResult = MessageBox.Show("Bạn có chắc chắn muốn xóa sách này không?", "Xác nhận xóa", MessageBoxButtons.YesNo);
-        if (confirmResult == DialogResult.Yes)
+        if (IsBookBeingBorrowed(sachHienTai.MaSach))
         {
-          DeleteBookFromDatabase();
-          LoadBooksFromDatabase();
-          MessageBox.Show("Xóa sách thành công!");
+          MessageBox.Show("Không thể xóa sách này vì nó đang được mượn.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+          return;
+        }
+
+        if (MessageBox.Show("Bạn có chắc chắn muốn xóa sách này không?", "Xác nhận", MessageBoxButtons.YesNo) == DialogResult.Yes)
+        {
+          try
+          {
+            using (var context = new QLThuVienContextDB())
+            {
+              var sachToDelete = context.DanhMucSaches.Find(sachHienTai.MaSach);
+              if (sachToDelete != null)
+              {
+                context.DanhMucSaches.Remove(sachToDelete);
+                context.SaveChanges();
+              }
+              else
+              {
+                MessageBox.Show("Sách không tồn tại trong cơ sở dữ liệu.");
+              }
+            }
+
+            LoadData();
+            ClearInputFields();
+            sachHienTai = null;
+          }
+          catch (Exception ex)
+          {
+            MessageBox.Show("Lỗi khi xóa sách: " + ex.Message);
+          }
         }
       }
       else
       {
-        MessageBox.Show("Vui lòng chọn sách để xóa.");
+        MessageBox.Show("Vui lòng chọn một sách để xóa.");
+      }
+    }
+
+    private bool IsBookBeingBorrowed(int maSach)
+    {
+      using (var context = new QLThuVienContextDB())
+      {
+        return context.MuonSaches.Any(ms => ms.MaSach == maSach && ms.TrangThai == "Đang mượn");
       }
     }
 
     private void btnLamMoi_Click(object sender, EventArgs e)
     {
       ClearInputFields();
+      SetWatermark();
     }
 
     private void btnTaiAnh_Click(object sender, EventArgs e)
@@ -194,6 +250,7 @@ namespace QLThuVien_3
       picAnhSach.Image = null;
       sachHienTai = null;
       txtTenSach.Focus();
+      txtTimKiemTheoTen.Clear();
     }
 
     private string SaveImageAndGetPath()
@@ -211,35 +268,63 @@ namespace QLThuVien_3
 
     private void txtTimKiemTheoTen_TextChanged(object sender, EventArgs e)
     {
-      // Ngăn chặn thay đổi văn bản
       if (isChangingText) return;
 
-      // Nếu người dùng nhập ký tự, không hiển thị watermark
       string searchText = txtTimKiemTheoTen.Text.ToLower().Trim();
 
-      // Cập nhật danh sách sách chỉ nếu người dùng không nhập watermark
-      if (searchText != "tìm kiếm theo tên")
+      if (!string.IsNullOrEmpty(searchText) && searchText != "tên sách hoặc tên tác giả")
       {
-        filteredBooks = danhMucSach.Where(b => b.TenSach.ToLower().Contains(searchText)).ToList();
-        dgvQuanLySach.Rows.Clear();
-        foreach (var sach in filteredBooks)
-        {
-          AddBookToGrid(sach);
-        }
+        filteredBooks = danhMucSach.Where(b =>
+            b.TenSach.ToLower().Contains(searchText) ||
+            danhSachTacGia.Any(a => a.TenTacGia.ToLower().Contains(searchText) && a.MaTacGia == b.MaTacGia)).ToList();
+      }
+      else
+      {
+        filteredBooks = danhMucSach.ToList();
+      }
+
+      dgvQuanLySach.Rows.Clear();
+      foreach (var sach in filteredBooks)
+      {
+        AddBookToGrid(sach);
       }
     }
 
     private void dgvQuanLySach_CellClick(object sender, DataGridViewCellEventArgs e)
     {
-      if (e.RowIndex >= 0 && e.RowIndex < (txtTimKiemTheoTen.Text.Length > 0 ? filteredBooks.Count : danhMucSach.Count))
+      if (e.RowIndex >= 0)
       {
-        sachHienTai = txtTimKiemTheoTen.Text.Length > 0 ? filteredBooks[e.RowIndex] : danhMucSach[e.RowIndex];
-        LoadBookDetails(sachHienTai);
+        if (dgvQuanLySach.Rows[e.RowIndex].Cells["ID"].Value == null ||
+            dgvQuanLySach.Rows[e.RowIndex].Cells["ID"].Value == DBNull.Value)
+        {
+          ClearInputFields();
+          sachHienTai = null;
+          return;
+        }
+
+        if (txtTimKiemTheoTen.Text.Length > 0 && filteredBooks.Count > 0)
+        {
+          if (e.RowIndex < filteredBooks.Count)
+          {
+            sachHienTai = filteredBooks[e.RowIndex];
+            LoadBookDetails(sachHienTai);
+          }
+        }
+        else if (danhMucSach.Count > 0)
+        {
+          if (e.RowIndex < danhMucSach.Count)
+          {
+            sachHienTai = danhMucSach[e.RowIndex];
+            LoadBookDetails(sachHienTai);
+          }
+        }
       }
     }
 
     private void LoadBookDetails(DanhMucSach sach)
     {
+      if (sach == null) return;
+
       txtMaSach.Text = sach.MaSach.ToString();
       txtTenSach.Text = sach.TenSach;
       cmbAuthor.SelectedValue = sach.MaTacGia;
@@ -262,9 +347,8 @@ namespace QLThuVien_3
 
     private void CalculateTotalBooks()
     {
-      int totalBooks = danhMucSach.Count;
-      int totalQuantity = danhMucSach.Sum(s => s.SoLuong ?? 0);
-      lblTongSach.Text = $"Tổng sách: {totalBooks} | Tổng số lượng: {totalQuantity}";
+      int totalBooks = danhMucSach.Count();
+      lblTongSach.Text = totalBooks.ToString();
     }
 
     private bool ValidateInput(bool checkMaSach = true)
@@ -318,10 +402,8 @@ namespace QLThuVien_3
 
       using (var context = new QLThuVienContextDB())
       {
-        // Lấy mã sách hiện tại
         var currentBookId = sachHienTai != null ? sachHienTai.MaSach : (int?)null;
 
-        // Kiểm tra nếu sách đã tồn tại với cùng tên sách và tác giả, ngoại trừ sách hiện tại
         if (context.DanhMucSaches.Any(s => s.TenSach == txtTenSach.Text
                                             && s.MaTacGia == cmbAuthor.SelectedValue.ToString()
                                             && s.MaSach != currentBookId))
@@ -351,11 +433,10 @@ namespace QLThuVien_3
           return;
         }
 
-        // Kiểm tra trùng tên sách với tác giả
         if (context.DanhMucSaches.Any(s => s.TenSach == txtTenSach.Text && s.MaTacGia == cmbAuthor.SelectedValue.ToString()))
         {
           MessageBox.Show("Tên sách đã tồn tại với tác giả này. Vui lòng nhập tên khác.");
-          return; // Ngừng thực hiện nếu có lỗi
+          return;
         }
 
         var sach = new DanhMucSach
@@ -373,9 +454,8 @@ namespace QLThuVien_3
         };
 
         context.DanhMucSaches.Add(sach);
-        context.SaveChanges(); // Lưu sách vào cơ sở dữ liệu
-
-        MessageBox.Show("Thêm sách thành công!"); // Xuất thông báo chỉ khi thêm thành công
+        context.SaveChanges();
+        MessageBox.Show("Thêm sách thành công!");
       }
       ClearInputFields();
       CalculateTotalBooks();
@@ -389,20 +469,17 @@ namespace QLThuVien_3
         var sach = context.DanhMucSaches.Find(sachHienTai.MaSach);
         if (sach != null)
         {
-          // Lấy mã sách hiện tại
           var currentBookId = sachHienTai.MaSach;
 
-          // Kiểm tra trùng tên sách với tác giả
           if (context.DanhMucSaches.Any(s => s.TenSach == txtTenSach.Text
                                               && s.MaTacGia == cmbAuthor.SelectedValue.ToString()
                                               && s.MaSach != currentBookId))
           {
             MessageBox.Show("Tên sách đã tồn tại với tác giả này. Vui lòng nhập tên khác.");
             txtTenSach.Focus();
-            return; // Ngừng thực hiện nếu có lỗi
+            return;
           }
 
-          // Nếu không có lỗi, thực hiện cập nhật
           sach.TenSach = txtTenSach.Text;
           sach.MaTacGia = cmbAuthor.SelectedValue.ToString();
           sach.NhaXuatBan = txtNhaXuatBan.Text;
@@ -413,36 +490,35 @@ namespace QLThuVien_3
           sach.MoTa = txtMoTa.Text;
           sach.NgayXuatBan = dtpNgayXuatBan.Value;
 
-          context.SaveChanges(); // Chỉ gọi SaveChanges() nếu không có lỗi
-
-          MessageBox.Show("Sửa sách thành công!"); // Xuất thông báo chỉ khi sửa thành công
-        }
-      }
-      ClearInputFields();
-      CalculateTotalBooks();
-      OnDataChanged?.Invoke();
-    }
-
-    private void DeleteBookFromDatabase()
-    {
-      using (var context = new QLThuVienContextDB())
-      {
-        var sach = context.DanhMucSaches.Find(sachHienTai.MaSach);
-        if (sach != null)
-        {
-          context.DanhMucSaches.Remove(sach);
           context.SaveChanges();
-        }
-        else
-        {
-          MessageBox.Show("Mã sách không tồn tại trong cơ sở dữ liệu. Không thể xóa.");
+          MessageBox.Show("Sửa sách thành công!");
         }
       }
       ClearInputFields();
-      sachHienTai = null;
       CalculateTotalBooks();
       OnDataChanged?.Invoke();
     }
+
+    //private void DeleteBookFromDatabase()
+    //{
+    //  using (var context = new QLThuVienContextDB())
+    //  {
+    //    var sach = context.DanhMucSaches.Find(sachHienTai.MaSach);
+    //    if (sach != null)
+    //    {
+    //      context.DanhMucSaches.Remove(sach);
+    //      context.SaveChanges();
+    //    }
+    //    else
+    //    {
+    //      MessageBox.Show("Mã sách không tồn tại trong cơ sở dữ liệu. Không thể xóa.");
+    //    }
+    //  }
+    //  ClearInputFields();
+    //  sachHienTai = null;
+    //  CalculateTotalBooks();
+    //  OnDataChanged?.Invoke();
+    //}
 
     private void dgvQuanLySach_RowPrePaint(object sender, DataGridViewRowPrePaintEventArgs e)
     {
@@ -492,44 +568,80 @@ namespace QLThuVien_3
 
     private void SetWatermark()
     {
-      // Ngăn chặn việc gọi lại do thay đổi văn bản
       if (isChangingText) return;
 
-      // Kiểm tra và thiết lập watermark
-      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text) || txtTimKiemTheoTen.Text == "Tìm kiếm theo tên")
+      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text) || txtTimKiemTheoTen.Text == "Tên sách hoặc tên tác giả")
       {
-        isChangingText = true; // Đánh dấu là đang thay đổi văn bản
-        txtTimKiemTheoTen.Text = "Tìm kiếm theo tên";
-        txtTimKiemTheoTen.ForeColor = Color.Gray; // Đặt màu chữ
-        txtTimKiemTheoTen.BackColor = Color.LightGray; // Đặt màu nền
-        isChangingText = false; // Đánh dấu kết thúc thay đổi
+        isChangingText = true;
+        txtTimKiemTheoTen.Text = "Tên sách hoặc tên tác giả";
+        txtTimKiemTheoTen.ForeColor = Color.Gray;
+        txtTimKiemTheoTen.BackColor = Color.LightGray;
+        isChangingText = false;
       }
       else
       {
-        txtTimKiemTheoTen.ForeColor = Color.Black; // Đặt lại màu chữ
-        txtTimKiemTheoTen.BackColor = Color.White; // Đặt lại màu nền
+        txtTimKiemTheoTen.ForeColor = Color.Black;
+        txtTimKiemTheoTen.BackColor = Color.White;
+      }
+    }
+
+    private void txtTimKiemTheoTen_Click(object sender, EventArgs e)
+    {
+      if (txtTimKiemTheoTen.Text == "Tên sách hoặc tên tác giả")
+      {
+        isChangingText = true;
+        txtTimKiemTheoTen.Text = "";
+        txtTimKiemTheoTen.ForeColor = Color.Black;
+        txtTimKiemTheoTen.BackColor = Color.White;
+        isChangingText = false;
       }
     }
 
     private void txtTimKiemTheoTen_Leave(object sender, EventArgs e)
     {
-      // Kiểm tra và hiển thị watermark nếu TextBox trống
       if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text))
       {
         SetWatermark();
       }
     }
 
-    private void txtTimKiemTheoTen_Click(object sender, EventArgs e)
+    private void cmbLocTheoTheLoai_SelectedIndexChanged(object sender, EventArgs e)
     {
-      if (txtTimKiemTheoTen.Text == "Tìm kiếm theo tên")
+      FilterBooks();
+    }
+
+    private void cmbLocTheoTacGia_SelectedIndexChanged(object sender, EventArgs e)
+    {
+      FilterBooks();
+    }
+
+    private void FilterBooks()
+    {
+      string selectedCategory = cmbLocTheoTheLoai.SelectedItem?.ToString();
+      string selectedAuthor = cmbLocTheoTacGia.SelectedValue?.ToString();
+
+      var filteredBooks = danhMucSach.AsEnumerable();
+
+      // Lọc theo thể loại
+      if (!string.IsNullOrEmpty(selectedCategory) && selectedCategory != "Tất cả")
       {
-        isChangingText = true; // Đánh dấu là đang thay đổi văn bản
-        txtTimKiemTheoTen.Text = ""; // Xóa watermark
-        txtTimKiemTheoTen.ForeColor = Color.Black; // Đặt lại màu chữ
-        txtTimKiemTheoTen.BackColor = Color.White; // Đặt lại màu nền
-        isChangingText = false; // Đánh dấu kết thúc thay đổi
+        filteredBooks = filteredBooks.Where(b => b.TheLoai == selectedCategory);
       }
+
+      // Lọc theo tác giả
+      if (!string.IsNullOrEmpty(selectedAuthor) && selectedAuthor != "ALL")
+      {
+        filteredBooks = filteredBooks.Where(b => b.MaTacGia == selectedAuthor);
+      }
+
+      // Cập nhật DataGridView
+      dgvQuanLySach.Rows.Clear();
+      foreach (var sach in filteredBooks)
+      {
+        AddBookToGrid(sach);
+      }
+
+      lblTongSach.Text = filteredBooks.Count().ToString();
     }
   }
 }

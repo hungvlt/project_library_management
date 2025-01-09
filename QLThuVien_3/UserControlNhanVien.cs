@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Data.Entity;
 using System.Drawing;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
@@ -12,7 +14,7 @@ namespace QLThuVien_3
   public partial class UserControlNhanVien : UserControl
   {
     private List<NhanVien> danhSachNhanVien = new List<NhanVien>();
-    private List<NhanVien> filteredList = new List<NhanVien>(); // Danh sách nhân viên đã lọc
+    private List<NhanVien> filteredList = new List<NhanVien>();
     private NhanVien nhanVienHienTai = null;
     private bool isChangingText = false;
 
@@ -22,7 +24,7 @@ namespace QLThuVien_3
       InitializeDataGridView();
       LoadData();
       LoadQuyenOptions();
-      txtMaNhanVien.ReadOnly = true; // Đặt mã nhân viên là ReadOnly
+      txtMaNhanVien.ReadOnly = true;
     }
 
     private void InitializeDataGridView()
@@ -43,6 +45,7 @@ namespace QLThuVien_3
         column.HeaderCell.Style.Font = new System.Drawing.Font("Segoe UI", 10, System.Drawing.FontStyle.Bold);
       }
 
+      dgvQuanLyNhanVien.DefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Regular);
       dgvQuanLyNhanVien.RowTemplate.Height = 35;
     }
 
@@ -54,6 +57,7 @@ namespace QLThuVien_3
         {
           danhSachNhanVien = context.NhanViens.ToList();
         }
+
         HienThiDanhSachNhanVien(danhSachNhanVien);
         UpdateTotalEmployees();
       }
@@ -92,25 +96,32 @@ namespace QLThuVien_3
       cmbQuyen.Items.Clear();
       cmbQuyen.Items.Add("Admin");
       cmbQuyen.Items.Add("ThuThu");
+
+      cmbGioiTinh.Items.Clear();
+      cmbGioiTinh.Items.Add("Nam");
+      cmbGioiTinh.Items.Add("Nữ");
+      cmbGioiTinh.Items.Add("Khác");
+      cmbGioiTinh.SelectedIndex = -1;
     }
 
     private void txtTimKiemTheoTen_TextChanged(object sender, EventArgs e)
     {
-      // Ngăn chặn thay đổi văn bản
       if (isChangingText) return;
 
-      // Nếu người dùng nhập ký tự, không hiển thị watermark
       string searchText = txtTimKiemTheoTen.Text.ToLower().Trim();
 
-      // Cập nhật danh sách độc giả chỉ nếu người dùng không nhập watermark
-      if (searchText != "tìm kiếm theo tên")
+      if (!string.IsNullOrEmpty(searchText) && searchText != "tìm kiếm theo mã/tên")
       {
         filteredList = danhSachNhanVien
-            .Where(docGia => docGia.TenNhanVien.ToLower().Contains(searchText))
+            .Where(nv => nv.TenNhanVien.ToLower().Contains(searchText) || nv.MaNhanVien.ToLower().Contains(searchText))
             .ToList();
-
-        HienThiDanhSachNhanVien(filteredList);
       }
+      else
+      {
+        filteredList = danhSachNhanVien;
+      }
+
+      HienThiDanhSachNhanVien(filteredList);
     }
 
     private bool ValidateInput(bool isAdding)
@@ -118,6 +129,7 @@ namespace QLThuVien_3
       if (string.IsNullOrWhiteSpace(txtTenNhanVien.Text) || !Regex.IsMatch(txtTenNhanVien.Text, @"^[\p{L}\d\s]+$"))
       {
         MessageBox.Show("Tên nhân viên chỉ chứa chữ cái tiếng Việt và chữ số với khoảng trắng.");
+        txtTenNhanVien.Focus();
         return false;
       }
 
@@ -127,12 +139,21 @@ namespace QLThuVien_3
           danhSachNhanVien.Any(nv => nv.SoDienThoai == txtSoDienThoai.Text)))
       {
         MessageBox.Show("Số điện thoại phải bắt đầu bằng '0', dài 10 ký tự và không được trùng với số đã có.");
+        txtSoDienThoai.Focus();
+        return false;
+      }
+
+      if (string.IsNullOrWhiteSpace(cmbGioiTinh.SelectedItem?.ToString()))
+      {
+        MessageBox.Show("Vui lòng chọn giới tính.");
+        cmbGioiTinh.Focus();
         return false;
       }
 
       if (string.IsNullOrWhiteSpace(txtDiaChi.Text) || !Regex.IsMatch(txtDiaChi.Text, @"^[\p{L}\d\s,\.]+$"))
       {
         MessageBox.Show("Địa chỉ chỉ chứa chữ cái tiếng Việt, dấu phẩy, chấm, số và khoảng trắng.");
+        txtDiaChi.Focus();
         return false;
       }
 
@@ -141,12 +162,35 @@ namespace QLThuVien_3
           danhSachNhanVien.Any(nv => nv.Email == txtEmail.Text)))
       {
         MessageBox.Show("Email phải kết thúc bằng '@gmail.com' và không được trùng với email đã có.");
+        txtEmail.Focus();
         return false;
       }
 
       if (dtpNgaySinh.Value >= DateTime.Now || (DateTime.Now.Year - dtpNgaySinh.Value.Year < 18))
       {
         MessageBox.Show("Ngày sinh phải nhỏ hơn ngày hiện tại và nhân viên phải đủ 18 tuổi.");
+        dtpNgaySinh.Focus();
+        return false;
+      }
+
+      if (string.IsNullOrWhiteSpace(cmbQuyen.SelectedItem?.ToString()))
+      {
+        MessageBox.Show("Vui lòng chọn quyền.");
+        cmbQuyen.Focus();
+        return false;
+      }
+
+      if (string.IsNullOrWhiteSpace(txtTenDangNhap.Text))
+      {
+        MessageBox.Show("Tên đăng nhập không được để trống.");
+        txtTenDangNhap.Focus();
+        return false;
+      }
+
+      if (string.IsNullOrWhiteSpace(txtMatKhau.Text))
+      {
+        MessageBox.Show("Mật khẩu không được để trống.");
+        txtMatKhau.Focus();
         return false;
       }
 
@@ -155,17 +199,17 @@ namespace QLThuVien_3
 
     private void ClearInputFields()
     {
-      txtMaNhanVien.Clear(); // Không cần xóa vì mã nhân viên tự động sinh
+      txtMaNhanVien.Clear();
       txtTenNhanVien.Clear();
       txtSoDienThoai.Clear();
       txtDiaChi.Clear();
       txtEmail.Clear();
       dtpNgaySinh.Value = DateTime.Now;
-      rdoNam.Checked = false;
-      rdoNu.Checked = false;
-      cmbQuyen.SelectedIndex = -1; // Đặt lại ComboBox
+      cmbGioiTinh.SelectedIndex = -1;
+      cmbQuyen.SelectedIndex = -1;
       txtTenDangNhap.Clear();
       txtMatKhau.Clear();
+      txtTimKiemTheoTen.Clear();
       txtTenNhanVien.Focus();
     }
 
@@ -173,7 +217,6 @@ namespace QLThuVien_3
     {
       using (var context = new QLThuVienContextDB())
       {
-        // Tìm mã lớn nhất hiện tại
         var maxMa = context.NhanViens
             .Where(nv => nv.MaNhanVien.StartsWith("NV"))
             .Select(nv => nv.MaNhanVien)
@@ -183,26 +226,26 @@ namespace QLThuVien_3
         int maxId = int.Parse(maxMa.Substring(2));
         int newId = maxId + 1;
 
-        return $"NV{newId:D3}"; // Định dạng NVxxx
+        return $"NV{newId:D3}";
       }
     }
 
     private void btnThem_Click(object sender, EventArgs e)
     {
-      if (ValidateInput(true)) // true cho thêm mới
+      if (ValidateInput(true))
       {
         var nhanVien = new NhanVien
         {
-          MaNhanVien = GenerateMaNhanVien(), // Sinh mã nhân viên mới
+          MaNhanVien = GenerateMaNhanVien(),
           TenNhanVien = txtTenNhanVien.Text,
           SoDienThoai = txtSoDienThoai.Text,
           DiaChi = txtDiaChi.Text,
           Email = txtEmail.Text,
           NgaySinh = dtpNgaySinh.Value,
-          Quyen = cmbQuyen.SelectedItem?.ToString(), // Lấy quyền từ ComboBox
+          Quyen = cmbQuyen.SelectedItem?.ToString(),
           TenDangNhap = txtTenDangNhap.Text,
-          MatKhau = txtMatKhau.Text,
-          GioiTinh = rdoNam.Checked ? "Nam" : "Nữ"
+          MatKhau = HashPassword(txtMatKhau.Text),
+          GioiTinh = cmbGioiTinh.SelectedItem?.ToString()
         };
 
         try
@@ -226,7 +269,7 @@ namespace QLThuVien_3
 
     private void btnSua_Click(object sender, EventArgs e)
     {
-      if (nhanVienHienTai != null && ValidateInput(false)) // false cho sửa thông tin
+      if (nhanVienHienTai != null && ValidateInput(false))
       {
         nhanVienHienTai.TenNhanVien = txtTenNhanVien.Text;
 
@@ -254,8 +297,11 @@ namespace QLThuVien_3
         nhanVienHienTai.NgaySinh = dtpNgaySinh.Value;
         nhanVienHienTai.Quyen = cmbQuyen.SelectedItem?.ToString();
         nhanVienHienTai.TenDangNhap = txtTenDangNhap.Text;
-        nhanVienHienTai.MatKhau = txtMatKhau.Text;
-        nhanVienHienTai.GioiTinh = rdoNam.Checked ? "Nam" : "Nữ";
+        if (txtMatKhau.Text != nhanVienHienTai.MatKhau)
+        {
+          nhanVienHienTai.MatKhau = HashPassword(txtMatKhau.Text);
+        }
+        nhanVienHienTai.GioiTinh = cmbGioiTinh.SelectedItem?.ToString();
 
         try
         {
@@ -291,19 +337,17 @@ namespace QLThuVien_3
             using (var context = new QLThuVienContextDB())
             {
               var nhanVienToDelete = context.NhanViens
-                  .Include(nv => nv.MuonSaches) // Giả sử có bảng mượn sách liên kết
+                  .Include(nv => nv.MuonSaches)
                   .FirstOrDefault(nv => nv.MaNhanVien == nhanVienHienTai.MaNhanVien);
 
               if (nhanVienToDelete != null)
               {
-                // Kiểm tra xem có bản ghi nào còn liên kết không
                 if (nhanVienToDelete.MuonSaches.Any())
                 {
                   MessageBox.Show("Không thể xóa nhân viên này vì còn bản ghi liên kết trong bảng mượn sách.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                   return;
                 }
 
-                // Xóa nhân viên nếu không còn liên kết
                 context.NhanViens.Remove(nhanVienToDelete);
                 context.SaveChanges();
               }
@@ -339,7 +383,13 @@ namespace QLThuVien_3
 
     private void UpdateTotalEmployees()
     {
-      lblTongNhanVien.Text = $"Tổng nhân viên: {danhSachNhanVien.Count}";
+      int totalEmployees = danhSachNhanVien.Count;
+      int maleCount = danhSachNhanVien.Count(nv => nv.GioiTinh == "Nam");
+      int femaleCount = danhSachNhanVien.Count(nv => nv.GioiTinh == "Nữ");
+      int adminCount = danhSachNhanVien.Count(nv => nv.Quyen == "Admin");
+      int librarianCount = danhSachNhanVien.Count(nv => nv.Quyen == "ThuThu");
+
+      lblTongNhanVien.Text = $"Tổng: {totalEmployees} | Nam: {maleCount} | Nữ: {femaleCount} | Admin: {adminCount} | Thủ thư: {librarianCount}";
     }
 
     private void dgvQuanLyNhanVien_CellClick(object sender, DataGridViewCellEventArgs e)
@@ -350,18 +400,28 @@ namespace QLThuVien_3
 
         if (nhanVienHienTai != null)
         {
-          txtMaNhanVien.Text = nhanVienHienTai.MaNhanVien; // Mã nhân viên được tự động sinh
+          txtMaNhanVien.Text = nhanVienHienTai.MaNhanVien;
           txtTenNhanVien.Text = nhanVienHienTai.TenNhanVien;
           txtSoDienThoai.Text = nhanVienHienTai.SoDienThoai;
           txtDiaChi.Text = nhanVienHienTai.DiaChi;
           txtEmail.Text = nhanVienHienTai.Email;
           dtpNgaySinh.Value = nhanVienHienTai.NgaySinh;
-          rdoNam.Checked = nhanVienHienTai.GioiTinh == "Nam";
-          rdoNu.Checked = nhanVienHienTai.GioiTinh == "Nữ";
+          cmbGioiTinh.SelectedItem = nhanVienHienTai.GioiTinh;
           cmbQuyen.SelectedItem = nhanVienHienTai.Quyen;
           txtTenDangNhap.Text = nhanVienHienTai.TenDangNhap;
           txtMatKhau.Text = nhanVienHienTai.MatKhau;
+          txtTenDangNhap.ReadOnly = true;
+          txtTenDangNhap.Enabled = false;
+          txtTenDangNhap.BackColor = SystemColors.Control;
         }
+      }
+      else
+      {
+        ClearInputFields();
+        nhanVienHienTai = null;
+        txtTenDangNhap.ReadOnly = false;
+        txtTenDangNhap.Enabled = true;
+        txtTimKiemTheoTen.BackColor = Color.FromArgb(240, 240, 240);
       }
     }
 
@@ -379,22 +439,18 @@ namespace QLThuVien_3
 
     private void txtTimKiemTheoTen_Leave(object sender, EventArgs e)
     {
-      // Kiểm tra và hiển thị watermark nếu TextBox trống
-      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text))
-      {
-        SetWatermark();
-      }
+      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text)) SetWatermark();
     }
 
     private void txtTimKiemTheoTen_Click(object sender, EventArgs e)
     {
-      if (txtTimKiemTheoTen.Text == "Tìm kiếm theo tên")
+      if (txtTimKiemTheoTen.Text == "Tìm kiếm theo mã/tên")
       {
-        isChangingText = true; // Đánh dấu là đang thay đổi văn bản
-        txtTimKiemTheoTen.Text = ""; // Xóa watermark
-        txtTimKiemTheoTen.ForeColor = Color.Black; // Đặt lại màu chữ
-        txtTimKiemTheoTen.BackColor = Color.White; // Đặt lại màu nền
-        isChangingText = false; // Đánh dấu kết thúc thay đổi
+        isChangingText = true;
+        txtTimKiemTheoTen.Text = "";
+        txtTimKiemTheoTen.ForeColor = Color.Black;
+        txtTimKiemTheoTen.BackColor = Color.White;
+        isChangingText = false;
       }
     }
 
@@ -405,21 +461,34 @@ namespace QLThuVien_3
 
     private void SetWatermark()
     {
-      if (isChangingText) return; // Ngăn chặn việc gọi lại do thay đổi văn bản
+      if (isChangingText) return;
 
-      // Kiểm tra và thiết lập watermark
-      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text) || txtTimKiemTheoTen.Text == "Tìm kiếm theo tên")
+      if (string.IsNullOrEmpty(txtTimKiemTheoTen.Text) || txtTimKiemTheoTen.Text == "Tìm kiếm theo mã/tên")
       {
-        isChangingText = true; // Đánh dấu là đang thay đổi văn bản
-        txtTimKiemTheoTen.Text = "Tìm kiếm theo tên"; // Thiết lập watermark
-        txtTimKiemTheoTen.ForeColor = Color.Gray; // Đặt màu chữ
-        txtTimKiemTheoTen.BackColor = Color.LightGray; // Đặt màu nền
-        isChangingText = false; // Đánh dấu kết thúc thay đổi
+        isChangingText = true;
+        txtTimKiemTheoTen.Text = "Tìm kiếm theo mã/tên";
+        txtTimKiemTheoTen.ForeColor = Color.Gray;
+        txtTimKiemTheoTen.BackColor = Color.LightGray;
+        isChangingText = false;
       }
       else
       {
-        txtTimKiemTheoTen.ForeColor = Color.Black; // Đặt lại màu chữ
-        txtTimKiemTheoTen.BackColor = Color.White; // Đặt lại màu nền
+        txtTimKiemTheoTen.ForeColor = Color.Black;
+        txtTimKiemTheoTen.BackColor = Color.White;
+      }
+    }
+
+    private string HashPassword(string password)
+    {
+      using (SHA256 sha256 = SHA256.Create())
+      {
+        byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+        StringBuilder builder = new StringBuilder();
+        foreach (byte b in bytes)
+        {
+          builder.Append(b.ToString("x2"));
+        }
+        return builder.ToString();
       }
     }
   }

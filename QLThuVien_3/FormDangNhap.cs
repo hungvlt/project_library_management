@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Windows.Forms;
 using QLThuVien_3.Models;
 
@@ -42,25 +44,20 @@ namespace QLThuVien_3
 
       using (var context = new QLThuVienContextDB())
       {
-        // Tìm nhân viên theo tên đăng nhập
         var nhanVien = context.NhanViens.SingleOrDefault(nv => nv.TenDangNhap == username);
+        string hashedPassword = HashPassword(password);
 
-        // Kiểm tra thông tin đăng nhập và quyền
-        if (nhanVien != null && nhanVien.MatKhau == password)
+        if (nhanVien != null && nhanVien.MatKhau == hashedPassword)
         {
-          // Kiểm tra quyền
           if (nhanVien.Quyen == "Admin" || nhanVien.Quyen == "ThuThu")
           {
             MessageBox.Show("Đăng nhập thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
             this.Hide();
 
-            FormTrangChu trangChu = new FormTrangChu(nhanVien); // Truyền thông tin nhân viên
+            // Truyền nhanVien vào FormTrangChu
+            FormTrangChu trangChu = new FormTrangChu(nhanVien);
             trangChu.ShowDialog();
             this.Close();
-          }
-          else
-          {
-            MessageBox.Show("Bạn không có quyền truy cập.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
           }
         }
         else
@@ -70,9 +67,18 @@ namespace QLThuVien_3
       }
     }
 
-    private void FormDangNhap_Load(object sender, EventArgs e)
+    private string HashPassword(string password)
     {
-      // Xử lý sự kiện khi form tải nếu cần
+      using (SHA256 sha256 = SHA256.Create())
+      {
+        byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+        StringBuilder builder = new StringBuilder();
+        foreach (byte b in bytes)
+        {
+          builder.Append(b.ToString("x2"));
+        }
+        return builder.ToString();
+      }
     }
   }
 }

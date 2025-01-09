@@ -8,18 +8,20 @@ namespace QLThuVien_3
   public partial class FormTrangChu : Form
   {
     private NhanVien _nhanVien;
+    private string _vaiTro;
 
     public FormTrangChu(NhanVien nhanVien)
     {
       InitializeComponent();
       _nhanVien = nhanVien;
+      _vaiTro = nhanVien.Quyen;
+      lblThongTinTaiKhoan.Text = $"{nhanVien.TenNhanVien} ({nhanVien.MaNhanVien})";
+   
       if (nhanVien.Quyen == "ThuThu")
       {
         btnNhanVien.Visible = false;
         btnBaoCaoThongKe.Visible = false;
-        // Đẩy các nút khác lên vị trí của các nút bị ẩn
-        btnGioiThieu.Location = new System.Drawing.Point(btnGioiThieu.Location.X, btnNhanVien.Location.Y);
-        btnDangXuat.Location = new System.Drawing.Point(btnDangXuat.Location.X, btnBaoCaoThongKe.Location.Y);
+        btnDangXuat.Location = new System.Drawing.Point(btnDangXuat.Location.X, btnNhanVien.Location.Y);
       }
     }
 
@@ -42,9 +44,8 @@ namespace QLThuVien_3
 
     private void btnMuonTra_Click(object sender, EventArgs e)
     {
-      picAnhNen.Visible = false;
       pnlHienThi.Controls.Clear();
-      UserControlMuonTra userControlMuonTra = new UserControlMuonTra();
+      UserControlMuonTra userControlMuonTra = new UserControlMuonTra(_nhanVien, _vaiTro);
       userControlMuonTra.Dock = DockStyle.Fill;
       pnlHienThi.Controls.Add(userControlMuonTra);
     }
@@ -67,15 +68,6 @@ namespace QLThuVien_3
       pnlHienThi.Controls.Add(userControlNhanVien);
     }
 
-    private void btnGioiThieu_Click(object sender, EventArgs e)
-    {
-      picAnhNen.Visible = false;
-      pnlHienThi.Controls.Clear();
-      UserControlGioiThieu userControlGioiThieu = new UserControlGioiThieu();
-      userControlGioiThieu.Dock = DockStyle.Fill;
-      pnlHienThi.Controls.Add(userControlGioiThieu);
-    }
-
     private void btnTacGia_Click(object sender, EventArgs e)
     {
       picAnhNen.Visible = false;
@@ -87,11 +79,16 @@ namespace QLThuVien_3
 
     private void btnLogout_Click(object sender, EventArgs e)
     {
-      FormDangNhap formDangNhap = new FormDangNhap();
-      this.Hide();
-      formDangNhap.ShowDialog();
-      this.Show();
-      this.Close();
+      var result = MessageBox.Show("Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+      if (result == DialogResult.Yes)
+      {
+        FormDangNhap formDangNhap = new FormDangNhap();
+        this.Hide();
+        formDangNhap.ShowDialog();
+        this.Show();
+        this.Close();
+      }
     }
 
     // Sự kiện cho nút TacGia
@@ -124,12 +121,6 @@ namespace QLThuVien_3
     private void btnDocGia_MouseDown(object sender, MouseEventArgs e) => btnDocGia.BackColor = Color.FromArgb(50, 100, 160);
     private void btnDocGia_MouseUp(object sender, MouseEventArgs e) => btnDocGia.BackColor = Color.FromArgb(70, 130, 180);
 
-    // Sự kiện cho nút GioiThieu
-    private void btnGioiThieu_MouseEnter(object sender, EventArgs e) => btnGioiThieu.BackColor = Color.FromArgb(70, 130, 180);
-    private void btnGioiThieu_MouseLeave(object sender, EventArgs e) => btnGioiThieu.BackColor = Color.FromArgb(100, 149, 237);
-    private void btnGioiThieu_MouseDown(object sender, MouseEventArgs e) => btnGioiThieu.BackColor = Color.FromArgb(50, 100, 160);
-    private void btnGioiThieu_MouseUp(object sender, MouseEventArgs e) => btnGioiThieu.BackColor = Color.FromArgb(70, 130, 180);
-
     // Sự kiện cho nút DanhMucSach
     private void btnDanhMucSach_MouseEnter(object sender, EventArgs e) => btnDanhMucSach.BackColor = Color.FromArgb(70, 130, 180);
     private void btnDanhMucSach_MouseLeave(object sender, EventArgs e) => btnDanhMucSach.BackColor = Color.FromArgb(100, 149, 237);
@@ -138,7 +129,6 @@ namespace QLThuVien_3
 
     private void FormTrangChu_Load(object sender, EventArgs e)
     {
-      // Bạn có thể thêm mã khởi tạo ở đây nếu cần
     }
   }
 }
